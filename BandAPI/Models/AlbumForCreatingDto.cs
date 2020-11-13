@@ -7,19 +7,11 @@ using System.Threading.Tasks;
 
 namespace BandAPI.Models
 {
-    [TitleAndDescriptionAttribute(ErrorMessage ="Title Must Be Different From Description")]
-    public class AlbumForCreatingDto /*: IValidatableObject*/
+    
+    public class AlbumForCreatingDto : AlbumManipulationDto /*: IValidatableObject*/
     {
 
-        [Required(ErrorMessage ="Title needs to be filled in ")]
-        [MaxLength(200,ErrorMessage="Title needs to be up to 200 characters")]
-        public string Title { get; set; }
-
-
-
        
-        [MaxLength(400, ErrorMessage = "Title needs to be up to 400 characters")]
-        public string Description { get; set; }
 
         //public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         //{
