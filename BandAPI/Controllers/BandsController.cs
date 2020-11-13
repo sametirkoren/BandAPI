@@ -23,9 +23,9 @@ namespace BandAPI.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<BandDto>> GetBands()
+        public ActionResult<IEnumerable<BandDto>> GetBands([FromQuery] BandsResourceParameters bandsResourceParameters)
         {
-            var bandsFromRepo = _bandAlbumRepository.GetBands();
+            var bandsFromRepo = _bandAlbumRepository.GetBands(bandsResourceParameters);
             //var bandsDto = new List<BandDto>();
 
             //foreach (var band in bandsFromRepo)

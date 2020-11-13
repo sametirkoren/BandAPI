@@ -1,5 +1,6 @@
 ﻿using BandAPI.DbContexts;
 using BandAPI.Entities;
+using BandAPI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,30 @@ namespace BandAPI.Services
             album.BandId = bandId;
             _bandAlbumContext.Albums.Add(album);
 
+        }
+
+        public IEnumerable<Band> GetBands(BandsResourceParameters bandsResourceParameters)
+        {
+            if (bandsResourceParameters == null)
+                throw new ArgumentNullException(nameof(bandsResourceParameters));
+            if (string.IsNullOrWhiteSpace(bandsResourceParameters.MainGenre) && string.IsNullOrWhiteSpace(bandsResourceParameters.SearchQuery))
+                return GetBands();
+
+            var collection = _bandAlbumContext.Bands as IQueryable<Band>;
+
+            if (!string.IsNullOrWhiteSpace(bandsResourceParameters.MainGenre))
+            {
+                bandsResourceParameters.MainGenre = bandsResourceParameters.MainGenre.Trim();
+                collection = collection.Where(b => b.MainGenre == bandsResourceParameters.MainGenre);
+            }
+
+            if (!string.IsNullOrWhiteSpace(bandsResourceParameters.SearchQuery))
+            {
+                bandsResourceParameters.SearchQuery = bandsResourceParameters.SearchQuery.Trim();
+                collection = collection.Where(b => b.Name.Contains(bandsResourceParameters.SearchQuery));
+            }
+
+            return collection.ToList();
         }
 
         public void AddBand(Band band)
