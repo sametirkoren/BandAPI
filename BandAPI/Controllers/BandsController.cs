@@ -65,6 +65,14 @@ namespace BandAPI.Controllers
             return CreatedAtRoute("GetBand", new { bandId = bandToReturn.Id }, bandToReturn);
         }
 
+
+        [HttpOptions]
+
+        public IActionResult GetBandsOptions()
+        {
+            Response.Headers.Add("Allow", "GET,POST,DELETE,HEAD,OPTIONS");
+            return Ok();
+        }
        
         
     }
