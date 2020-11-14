@@ -29,12 +29,12 @@ namespace BandAPI.Services
 
         }
 
-        public IEnumerable<Band> GetBands(BandsResourceParameters bandsResourceParameters)
+        public PagedList<Band> GetBands(BandsResourceParameters bandsResourceParameters)
         {
             if (bandsResourceParameters == null)
                 throw new ArgumentNullException(nameof(bandsResourceParameters));
-            if (string.IsNullOrWhiteSpace(bandsResourceParameters.MainGenre) && string.IsNullOrWhiteSpace(bandsResourceParameters.SearchQuery))
-                return GetBands();
+            //if (string.IsNullOrWhiteSpace(bandsResourceParameters.MainGenre) && string.IsNullOrWhiteSpace(bandsResourceParameters.SearchQuery))
+            //    return GetBands();
 
             var collection = _bandAlbumContext.Bands as IQueryable<Band>;
 
@@ -50,7 +50,7 @@ namespace BandAPI.Services
                 collection = collection.Where(b => b.Name.Contains(bandsResourceParameters.SearchQuery));
             }
 
-            return collection.ToList();
+            return PagedList<Band>.Create(collection, bandsResourceParameters.PageNumber, bandsResourceParameters.PageSize);
         }
 
         public void AddBand(Band band)
