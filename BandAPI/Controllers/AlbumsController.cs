@@ -77,7 +77,16 @@ namespace BandAPI.Controllers
             var albumFromRepo = _bandAlbumRepository.GetAlbum(bandId, albumId);
 
             if (albumFromRepo == null)
-                return NotFound();
+            {
+                var albumToAdd = _mapper.Map<Album>(album);
+                albumToAdd.Id = albumId;
+                _bandAlbumRepository.AddAlbum(bandId,albumToAdd);
+                _bandAlbumRepository.Save();
+
+                var albumToReturn = _mapper.Map<AlbumDto>(albumToAdd);
+
+                return CreatedAtRoute("GetAlbumForBand", new { bandId = bandId, albumId = albumToReturn.Id }, albumToReturn);
+            }
 
             _mapper.Map(album, albumFromRepo);
             _bandAlbumRepository.UpdateAlbum(albumFromRepo);
@@ -96,7 +105,20 @@ namespace BandAPI.Controllers
             var albumFromRepo = _bandAlbumRepository.GetAlbum(bandId, albumId);
 
             if (albumFromRepo == null)
-                return NotFound();
+            {
+                var albumDto = new AlbumForUpdatingDto();
+                patchDocument.ApplyTo(albumDto);
+                var albumToAdd = _mapper.Map<Album>(albumDto);
+                albumToAdd.Id = albumId;
+
+                _bandAlbumRepository.AddAlbum(bandId, albumToAdd);
+                _bandAlbumRepository.Save();
+
+
+                var albumToReturn = _mapper.Map<AlbumDto>(albumToAdd);
+
+                return CreatedAtRoute("GetAlbumForBand", new { bandId = bandId, albumId = albumToReturn.Id }, albumToReturn);
+            }
 
             var albumToPatch = _mapper.Map<AlbumForUpdatingDto>(albumFromRepo);
             patchDocument.ApplyTo(albumToPatch,ModelState);
