@@ -40,6 +40,7 @@ namespace BandAPI
 
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddScoped<IBandAlbumRepository, BandAlbumRepository>();
+            services.AddScoped<IPropertyMappingService, PropertyMappingService>();
             services.AddDbContext<BandAlbumContext>(options =>
             {
                 options.UseSqlServer(Configuration.GetConnectionString("remote"));
