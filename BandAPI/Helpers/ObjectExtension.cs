@@ -7,21 +7,28 @@ using System.Threading.Tasks;
 
 namespace BandAPI.Helpers
 {
-    public static class IEnumerableExtension
+    public static class ObjectExtension
     {
-        public static IEnumerable<ExpandoObject> ShapeData<TSource>(this IEnumerable<TSource> source, string fields)
+        public static ExpandoObject ShapeDate<TSource>(this TSource source ,string fields)
         {
+
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            var objectList = new List<ExpandoObject>();
-            var propertyInfoList = new List<PropertyInfo>();
+            var dataShapedObject = new ExpandoObject();
 
             if (string.IsNullOrWhiteSpace(fields))
             {
                 var propertyInfos = typeof(TSource).GetProperties(BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
 
-                propertyInfoList.AddRange(propertyInfos);
+                foreach (var propertyInfo in propertyInfos)
+                {
+                    var propertyValue = propertyInfo.GetValue(source);
+
+                    ((IDictionary<string, object>)dataShapedObject).Add(propertyInfo.Name, propertyValue);
+                }
+
+                return dataShapedObject;
             }
             else
             {
@@ -31,28 +38,19 @@ namespace BandAPI.Helpers
                     var propertyName = field.Trim();
                     var propertyInfo = typeof(TSource).GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
 
-                    if(propertyInfo == null)
+                    if (propertyInfo == null)
                         throw new Exception(propertyName.ToString() + "was not found");
 
-                    propertyInfoList.Add(propertyInfo);
-                }
-            }
-
-            foreach (TSource sourceObject in source)
-            {
-                var dataShapedObject = new ExpandoObject();
-
-                foreach (var propertyInfo in propertyInfoList)
-                {
-                    var propertyValue = propertyInfo.GetValue(sourceObject);
+                    var propertyValue = propertyInfo.GetValue(source);
 
                     ((IDictionary<string, object>)dataShapedObject).Add(propertyInfo.Name, propertyValue);
-                }
 
-                objectList.Add(dataShapedObject);
+                }
             }
 
-            return objectList;
+            
+
+            return dataShapedObject;
         }
     }
 }

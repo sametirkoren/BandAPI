@@ -19,12 +19,14 @@ namespace BandAPI.Controllers
         private readonly IBandAlbumRepository _bandAlbumRepository;
         private readonly IMapper _mapper;
         private readonly IPropertyMappingService _propertyMappingService;
-        public BandsController(IBandAlbumRepository bandAlbumRepository, IMapper mapper, IPropertyMappingService propertyMappingService)
+        private readonly IPropertyValidationService _propertyValidationService;
+        public BandsController(IBandAlbumRepository bandAlbumRepository, IMapper mapper, IPropertyMappingService propertyMappingService, IPropertyValidationService propertyValidationService)
         {
             _bandAlbumRepository = bandAlbumRepository ?? throw new ArgumentNullException(nameof(bandAlbumRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
             _propertyMappingService = propertyMappingService ?? throw new ArgumentNullException(nameof(propertyMappingService));
+            _propertyValidationService = propertyValidationService;
         }
 
         [HttpGet(Name = "GetBands")]
@@ -33,6 +35,10 @@ namespace BandAPI.Controllers
 
             if (!_propertyMappingService.ValidMappingExists<BandDto, Band>(bandsResourceParameters.OrderBy))
                 return BadRequest();
+
+            if (!_propertyValidationService.HasValidProperties<BandDto>(bandsResourceParameters.Fields))
+                return BadRequest();
+
             var bandsFromRepo = _bandAlbumRepository.GetBands(bandsResourceParameters);
 
             var previousPageLink = bandsFromRepo.HasPrevious ? CreateBandsUri(bandsResourceParameters, UriType.PreviousPage) : null;
@@ -63,17 +69,20 @@ namespace BandAPI.Controllers
             //    });
             //}
 
-            return Ok(_mapper.Map<IEnumerable<BandDto>>(bandsFromRepo));
+            return Ok(_mapper.Map<IEnumerable<BandDto>>(bandsFromRepo).ShapeData(bandsResourceParameters.Fields));
         }
         [HttpGet("{bandId}" , Name="GetBand")]
-        public IActionResult GetBand(Guid bandId)
+        public IActionResult GetBand(Guid bandId , string fields)
         {
+            if (!_propertyValidationService.HasValidProperties<BandDto>(fields))
+                return BadRequest();
+
             var bandFromRepo = _bandAlbumRepository.GetBand(bandId);
 
             if (bandFromRepo == null)
                 return NotFound();
 
-            return Ok(bandFromRepo);
+            return Ok(_mapper.Map<BandDto>(bandFromRepo).ShapeDate(fields));
         }
 
         [HttpPost]
@@ -118,6 +127,7 @@ namespace BandAPI.Controllers
                 case UriType.PreviousPage:
                     return Url.Link("GetBands",new
                     {
+                        fields = bandsResourceParameters.Fields,
                         orderBy = bandsResourceParameters.OrderBy,
                         pageNumber = bandsResourceParameters.PageNumber - 1 ,
                         pageSize = bandsResourceParameters.PageSize,
@@ -126,9 +136,9 @@ namespace BandAPI.Controllers
                     });
                 case UriType.NextPage:
                     return Url.Link("GetBands", new
-                    {
+                    { 
+                        fields = bandsResourceParameters.Fields,
                         orderBy = bandsResourceParameters.OrderBy,
-
                         pageNumber = bandsResourceParameters.PageNumber + 1,
                         pageSize = bandsResourceParameters.PageSize,
                         mainGenre = bandsResourceParameters.MainGenre,
@@ -137,8 +147,8 @@ namespace BandAPI.Controllers
                 default: 
                     return Url.Link("GetBands", new
                     {
+                        fields = bandsResourceParameters.Fields,
                         orderBy = bandsResourceParameters.OrderBy,
-
                         pageNumber = bandsResourceParameters.PageNumber,
                         pageSize = bandsResourceParameters.PageSize,
                         mainGenre = bandsResourceParameters.MainGenre,
