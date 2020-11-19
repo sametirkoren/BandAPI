@@ -14,6 +14,7 @@ namespace BandAPI.Controllers
 {
     [ApiController]
     [Route("api/bands")]
+
     public class BandsController : ControllerBase
     {
         private readonly IBandAlbumRepository _bandAlbumRepository;
