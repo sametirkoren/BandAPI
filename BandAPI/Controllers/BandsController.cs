@@ -51,12 +51,32 @@ namespace BandAPI.Controllers
                 totalCount = bandsFromRepo.TotalCount,
                 pageSize = bandsFromRepo.PageSize,
                 currentPage = bandsFromRepo.CurrentPage,
-                totalPages = bandsFromRepo.TotalPages,
-                previousPageLink = previousPageLink,
-                nextPageLink = nextPageLink
+                totalPages = bandsFromRepo.TotalPages
+              
             };
 
             Response.Headers.Add("Pagination", JsonSerializer.Serialize(metaData));
+
+            var links = CreateLinksForBand(bandsResourceParameters,bandsFromRepo.HasNext,bandsFromRepo.HasPrevious);
+
+            var shapedBands = _mapper.Map<IEnumerable<BandDto>>(bandsFromRepo).ShapeData(bandsResourceParameters.Fields);
+
+            var shapedBandsWithLinks = shapedBands.Select(band =>
+            {
+                var bandAsDictionary = band as IDictionary<string, object>;
+                var bandLinks = CreateLinksForBand((Guid)bandAsDictionary["Id"], null);
+                bandAsDictionary.Add("links", bandLinks);
+                return bandAsDictionary;
+            });
+
+
+            var linkedCollectionResource = new
+            {
+                value = shapedBandsWithLinks,
+                links
+            };
+            return Ok(linkedCollectionResource);
+
             //var bandsDto = new List<BandDto>();
 
             //foreach (var band in bandsFromRepo)
@@ -70,7 +90,7 @@ namespace BandAPI.Controllers
             //    });
             //}
 
-            return Ok(_mapper.Map<IEnumerable<BandDto>>(bandsFromRepo).ShapeData(bandsResourceParameters.Fields));
+            
         }
         [HttpGet("{bandId}" , Name="GetBand")]
         public IActionResult GetBand(Guid bandId , string fields)
@@ -83,10 +103,15 @@ namespace BandAPI.Controllers
             if (bandFromRepo == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<BandDto>(bandFromRepo).ShapeDate(fields));
+
+            var links = CreateLinksForBand(bandId, fields);
+            var linkedResourceToReturn = _mapper.Map<BandDto>(bandFromRepo).ShapeDate(fields) as IDictionary<string , object>;
+            linkedResourceToReturn.Add("links", links);
+
+            return Ok(linkedResourceToReturn);
         }
 
-        [HttpPost]
+        [HttpPost(Name ="CreateBand")]
         public ActionResult<BandDto> CreateBand([FromBody] BandForCreatingDto band)
         {
             var bandEntity = _mapper.Map<Band>(band);
@@ -95,7 +120,17 @@ namespace BandAPI.Controllers
 
             var bandToReturn = _mapper.Map<BandDto>(bandEntity);
 
-            return CreatedAtRoute("GetBand", new { bandId = bandToReturn.Id }, bandToReturn);
+            var links = CreateLinksForBand(bandToReturn.Id, null);
+
+            var linkedResourceToReturn = bandToReturn.ShapeDate(null) as IDictionary<string , object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+
+            return CreatedAtRoute("GetBand", new { bandId = linkedResourceToReturn["Id"] }, linkedResourceToReturn);
+
+
+
         }
 
 
@@ -108,7 +143,7 @@ namespace BandAPI.Controllers
         }
 
 
-        [HttpDelete("{bandId}")]
+        [HttpDelete("{bandId}" , Name ="Delete")]
 
         public ActionResult DeleteBand(Guid bandId)
         {
@@ -135,6 +170,11 @@ namespace BandAPI.Controllers
                         mainGenre = bandsResourceParameters.MainGenre,
                         searchQuery = bandsResourceParameters.SearchQuery
                     });
+
+                case UriType.Current:
+
+
+
                 case UriType.NextPage:
                     return Url.Link("GetBands", new
                     { 
@@ -157,6 +197,52 @@ namespace BandAPI.Controllers
                     });
             }
         }
+
+        private IEnumerable<LinkDto> CreateLinksForBand(Guid bandId , string fields)
+        {
+            var links = new List<LinkDto>();
+
+
+            if (string.IsNullOrWhiteSpace(fields))
+            {
+                links.Add(new LinkDto(Url.Link("GetBand", new { bandId }),"self","GET"));
+            }
+            else
+            {
+                links.Add(new LinkDto(Url.Link("GetBand", new { bandId,fields }), "self", "GET"));
+
+            }
+
+            links.Add(
+                    new LinkDto(Url.Link("DeleteBand", new { bandId }), "delete_band", "DELETE"));
+
+            links.Add(
+                new LinkDto(Url.Link("CreateAlbumForBand", new { bandId }), "create_album_for_band", "POST"));
+
+            links.Add(
+                    new LinkDto(Url.Link("GetAlbumsForBand", new { bandId }), "albums","GET"));
+
+            return links;
+        }
         
+
+        private IEnumerable<LinkDto> CreateLinksForBand(BandsResourceParameters bandsResourceParameters, bool hasNext , bool hasPrevious)
+        {
+            var links = new List<LinkDto>();
+
+            links.Add(new LinkDto(CreateBandsUri(bandsResourceParameters, UriType.Current), "self", "GET"));
+
+            if (hasNext)
+            {
+                links.Add(new LinkDto(CreateBandsUri(bandsResourceParameters, UriType.NextPage), "nextPage", "GET"));
+            }
+
+            if (hasPrevious)
+            {
+                links.Add(new LinkDto(CreateBandsUri(bandsResourceParameters, UriType.PreviousPage), "previousPage", "GET"));
+            }
+
+            return links;
+        }
     }
 }

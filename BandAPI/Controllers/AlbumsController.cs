@@ -26,7 +26,7 @@ namespace BandAPI.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet(Name ="GetAlbumsForBand")]
 
         public ActionResult<IEnumerable<AlbumDto>> GetAlbumsForBand(Guid bandId)
         {
@@ -55,7 +55,8 @@ namespace BandAPI.Controllers
         }
 
 
-        [HttpPost]
+        [HttpPost(Name = "CreateAlbumForBand")]
+
 
         public ActionResult<AlbumDto> CreateAlbumForBand(Guid bandId, [FromBody] AlbumForCreatingDto album)
         {
